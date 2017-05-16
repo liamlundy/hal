@@ -36,8 +36,9 @@ def test_update_weights_bias():
 
 
 def test_train_once_weights():
-    assert_almost_equal(train_once(normalize(data_set[:, :-1]), data_set[:, -1], np.array([0, 0]), 0, 0.01)[0], np.array([0.0005, 0.00544279]))
+    assert_almost_equal(train_once(normalize(data_set[:, :-1]), data_set[:, -1], np.array([0, 0]), 0, 0.01)[0],
+                        np.array([-0.00542326, 0.00133366]))
 
 
 def test_train_once_bias():
-    assert train_once(normalize(data_set[:, :-1]), data_set[:, -1], np.array([0, 0]), 0, 0.01)[1] == 0.0
+    assert train_once(normalize(data_set[:, :-1]), data_set[:, -1], np.array([0, 0]), 0, 0.01)[1] == 0.01

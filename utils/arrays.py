@@ -1,2 +1,5 @@
+import numpy as np
+
+
 def normalize(arr):
-    return arr/100
+    return (arr - np.mean(arr, 0)) / np.std(arr, 0)

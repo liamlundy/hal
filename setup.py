@@ -45,5 +45,5 @@ setup(
         'Programming Language :: Python :: 3.5',
     ],
 
-    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests'], install_requires=['numpy'])
 )

@@ -1,13 +1,13 @@
-from numpy import *
+import numpy as np
 
 
 def total_net_input(input_vars, weights, bias):
     assert True  # Check dims
-    return dot(weights, input_vars) + bias
+    return np.dot(weights, input_vars) + bias
 
 
 def activation(net_input):
-    return 1 / (1 + exp(-net_input))
+    return 1 / (1 + np.exp(-net_input))
 
 
 class MLP:
@@ -18,8 +18,8 @@ class MLP:
         self.num_output_nodes = num_output_nodes
         self.num_hidden_nodes = num_hidden_nodes
 
-        self.weights1 = zeros((num_hidden_nodes, num_input_nodes))
-        self.weights2 = zeros((num_output_nodes, num_hidden_nodes))
+        self.weights1 = np.zeros((num_hidden_nodes, num_input_nodes))
+        self.weights2 = np.zeros((num_output_nodes, num_hidden_nodes))
 
         self.bias1 = 0
         self.bias2 = 0
@@ -30,22 +30,32 @@ class MLP:
         output_nodes = activation(total_net_input(hidden_nodes, weights2, bias2))
 
         delta = MLP.delta_output(output_nodes, target)
-        new_weights2 = weights2 - self.learning_rate*column_stack([delta*hidden_nodes[0], delta*hidden_nodes[1]])
+        new_weights2 = weights2 - self.learning_rate*np.column_stack([delta*hidden_nodes[0], delta*hidden_nodes[1]])
 
-        total = array([sum(delta*weights2[:, 0]), sum(delta*weights2[:, 1])])
+        total = np.array([sum(delta*weights2[:, 0]), sum(delta*weights2[:, 1])])
 
-        new_weights1 = copy(weights1)
+        new_weights1 = np.copy(weights1)
         for row in range(weights1.shape[0]):
             new_weights1[:, row] = weights1[:, row] - self.learning_rate * total * hidden_nodes * \
                                                       (1 - hidden_nodes) * input_vars[row]
 
         return new_weights1, new_weights2
     
-    def train(self, input_vars, targets):
+    def train_once(self, input_vars, targets):
         for input_var, target in zip(input_vars, targets):
             self.weights1, self.weights2 = self.update_weight(
-                input_vars, target, self.weights1, self.weights2, self.bias1, self.bias2
+                input_var, target, self.weights1, self.weights2, self.bias1, self.bias2
             )
+
+    def train(self, input_vars, targets, n):
+        for i in range(n):
+            self.train_once(input_vars, targets)
+
+    def predict(self, input_vars):
+        hidden_nodes = activation(total_net_input(input_vars, self.weights1, self.bias1))
+        output_nodes = activation(total_net_input(hidden_nodes, self.weights2, self.bias2))
+
+        return output_nodes
 
     @staticmethod
     def total_error(output, target):
@@ -56,30 +66,9 @@ class MLP:
         return -(target - output)*output*(1 - output)
 
 
-# def delta_rule_w5(output, target):
-    # -(target, output)*output*(1 - output)*output
+mlp = MLP(2, 2, 2)
+mlp.train(np.array([[.05, .1]]), np.array([[0.01, 0.99]]), 10000)
 
+print(mlp.predict(np.array([0.05, 0.1])))
 
-mlp = MLP(2, 1, 2)
-res = mlp.update_weight(array([.05, .1]), array([0.01, 0.99]), array([[.15, .2], [.25, .3]]), array([[.4, .45], [.5, .55]]), .35, .6)
-
-err = mlp.total_error(res, array([0.01, 0.99]))
-print(res)
-
-# d = mlp.delta_output(res, array([0.01, 0.99]))
-# print(d)
-
-# gradient(mlp.)
-
-#
-# net = total_net_input(array([[.15, .2], [.25, .3]]), array([.05, .1]), .35)
-#
-# print(net)
-#
-# hidden_out = activation(net)
-#
-# print(hidden_out)
-#
-# out = total_net_input(array([[.4, .45], [.5, .55]]), hidden_out, .6)
-#
-# print(activation(out))
+print(mlp)
