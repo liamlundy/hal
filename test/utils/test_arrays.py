@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from utils.arrays import normalize
+from hal.utils.arrays import normalize
 
 
 def test_normalize():

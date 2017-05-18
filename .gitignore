@@ -1,5 +1,8 @@
 .idea
 .cache
 HW
+build
+dist
+hal.egg-info
 __pycache__
 

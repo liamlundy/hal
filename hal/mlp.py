@@ -24,15 +24,25 @@ class MLP:
         self.bias1 = 0
         self.bias2 = 0
 
+    def __repr__(self):
+        info = 'Activation function:\tNone\nLearning rate:\t{}\nFirst set of weights:\n{}\nSecond set of ' \
+               'weights:\n{}\nFirst layer bias:\t{}\nSecond layer bias:\t{}'.format(self.learning_rate,
+                                                                                    self.weights1, self.weights2,
+                                                                                    self.bias1, self.bias2)
+        return info
+
     def update_weight(self, input_vars, target, weights1, weights2, bias1, bias2):
         hidden_nodes = activation(total_net_input(input_vars, weights1, bias1))
 
         output_nodes = activation(total_net_input(hidden_nodes, weights2, bias2))
 
         delta = MLP.delta_output(output_nodes, target)
-        new_weights2 = weights2 - self.learning_rate*np.column_stack([delta*hidden_nodes[0], delta*hidden_nodes[1]])
+        # new_weights2 = weights2 - self.learning_rate*np.column_stack([delta*hidden_nodes[0], delta*hidden_nodes[1]])
+        new_weights2 = weights2 - self.learning_rate*np.column_stack(delta*row for row in hidden_nodes)
 
-        total = np.array([sum(delta*weights2[:, 0]), sum(delta*weights2[:, 1])])
+        # total = np.array([sum(delta*weights2[:, 0]), sum(delta*weights2[:, 1])])
+        total = np.array([sum(delta * col) for col in weights2.T])
+        # np.apply_along_axis(sum, 0, weights2 * delta)
 
         new_weights1 = np.copy(weights1)
         for row in range(weights1.shape[0]):
@@ -51,11 +61,14 @@ class MLP:
         for i in range(n):
             self.train_once(input_vars, targets)
 
-    def predict(self, input_vars):
-        hidden_nodes = activation(total_net_input(input_vars, self.weights1, self.bias1))
+    def predict_once(self, input_var):
+        hidden_nodes = activation(total_net_input(input_var, self.weights1, self.bias1))
         output_nodes = activation(total_net_input(hidden_nodes, self.weights2, self.bias2))
 
         return output_nodes
+
+    def predict(self, input_vars):
+        return np.apply_along_axis(self.predict_once, 1, input_vars)
 
     @staticmethod
     def total_error(output, target):
@@ -66,9 +79,9 @@ class MLP:
         return -(target - output)*output*(1 - output)
 
 
-mlp = MLP(2, 2, 2)
-mlp.train(np.array([[.05, .1]]), np.array([[0.01, 0.99]]), 10000)
+mlp = MLP(3, 3, 1)
+mlp.train(np.array([[.05, .1, .05]]), np.array([2]), 10000)
 
-print(mlp.predict(np.array([0.05, 0.1])))
+print(mlp.predict(np.array([[0.05, 0.1, .05]])))
 
-print(mlp)
+print('\n' + repr(mlp))

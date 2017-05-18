@@ -1,8 +1,8 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from utils.arrays import normalize
-from perceptron import predict, update_weights, train_once
+from hal.perceptron import predict, update_weights, train_once
+from hal.utils.arrays import normalize
 
 data_set = np.array([[10, 64.0277609352, 0],
                      [15, 0.0383577812151, 0],
