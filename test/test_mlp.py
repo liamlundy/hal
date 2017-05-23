@@ -1,11 +1,11 @@
 import numpy as np
 from numpy.testing import assert_almost_equal
 
-from hal.mlp import activation, MLP
+from hal.mlp import sigmoid, Network
 
 
-def test_activation():
-    assert_almost_equal(activation(0.3775), 0.593269992)
+def test_sigmoid():
+    assert_almost_equal(sigmoid(0.3775), 0.593269992)
 
 
 def test_weights():
