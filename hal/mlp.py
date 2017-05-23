@@ -1,14 +1,10 @@
 import gzip
 import pickle
+import matplotlib.pyplot as plt
 
 import numpy as np
 
 from hal.utils.arrays import multi_class_to_matrix
-
-
-def total_net_input(input_vars, weights, bias):
-    assert True  # Check dims
-    return np.dot(weights, input_vars) + bias
 
 
 def sigmoid(weighted_input):
@@ -38,7 +34,7 @@ class Layer:
 
 
 class Network:
-    def __init__(self, ):
+    def __init__(self):
         self.learning_rate = None
 
         self.input_layer = None
@@ -47,10 +43,15 @@ class Network:
 
         self.weights = []
 
+        self.batch_size = None
+        self.verbose = False
+        self.type = None
+
         self.labeler = Labeler()
 
-    def initialize_network(self, num_inputs, num_outputs, hidden_layers_sizes, learning_rate):
+    def initialize_network(self, num_inputs, num_outputs, hidden_layers_sizes, learning_rate, batch_size):
         self.learning_rate = learning_rate
+        self.batch_size = batch_size
 
         self.input_layer = Layer(num_inputs)
         self.output_layer = Layer(num_outputs)
@@ -94,9 +95,23 @@ class Network:
         self.input_layer.compute_error(self.weights[0], next_layer_error)
 
     def gradient_descent(self):
-        # Batch of size 1
+        """
+        
+        :return: 
+        :rtype: 
+        """
 
+        # act_in * delta_out for each neuron pair
         def create_partials_matrix(activations, error):
+            """
+            Creates matrices to multiply each pair of neurons that span a weight.
+            :param activations: the activations from the previous layer
+            :type activations: np.array
+            :param error: the errors from the next layer
+            :type error: np.array
+            :return: the partial derivative of the error for each weight
+            :rtype: np.array
+            """
             return np.multiply(np.repeat(activations[None, :], len(error), axis=0),
                                np.repeat(error[:, None], len(activations), axis=1))
 
@@ -110,32 +125,40 @@ class Network:
         self.weights[-1] -= self.learning_rate*create_partials_matrix(prev_activations, self.output_layer.error)
         self.output_layer.biases -= self.learning_rate*self.output_layer.error
 
-    def train(self, training_set, training_targets, n):
+    def train(self, training_set, training_targets, n, batch_size):
+        # TODO: Batch size
+        err = []
         for _ in range(n):
+            error_sum = 0
             for inputs, targets in zip(training_set, training_targets):
                 self.feed_forward(inputs)
                 self.back_prop(targets)
                 self.gradient_descent()
+                error_sum += np.sum(self.output_layer.error**2)
+            err.append(error_sum)
+        if self.verbose:
+            plt.plot(err)
+            plt.show()
 
-    def fit(self, inputs, targets, hidden_layer_sizes, learning_rate=0.01, iterations=10):
-        # Number of input columns
-
+    def fit(self, inputs, targets, hidden_layer_sizes, learning_rate=0.01, iterations=10, batch_size=32, verbose=False):
+        self.verbose = verbose
         # is it multi class or binary?
         # TODO: binary how many outputs?
         unique_target_values = np.unique(targets)
         if len(unique_target_values) > 2:
 
             # TODO: move this
-            # self.type = 'multiclass'
+            self.type = 'multiclass'
             targets = multi_class_to_matrix(targets)
             self.labeler.set_labels(unique_target_values)
         else:
             raise NotImplementedError("Only works for multiclass as of now.")
 
-        self.initialize_network(inputs.shape[1], len(unique_target_values), hidden_layer_sizes, learning_rate)
+        self.initialize_network(inputs.shape[1], len(unique_target_values), hidden_layer_sizes, learning_rate,
+                                batch_size)
 
         # TODO: How many iterations?
-        self.train(inputs, targets, iterations)
+        self.train(inputs, targets, iterations, self.batch_size)
 
     def predict(self, testing_set):
         outputs = []
@@ -155,116 +178,6 @@ class Labeler:
     def to_labels(self, predicted):
         max_indexes = np.argmax(predicted, axis=1)
         return np.array([self.labels[index] for index in max_indexes])
-# class MLP:
-#
-#     def __init__(self, num_hidden_nodes=3, learning_rate=0.01):
-#         self.type = None
-#         self.learning_rate = learning_rate
-#
-#         self.num_input_nodes = None
-#         self.num_output_nodes = None
-#         self.num_hidden_nodes = num_hidden_nodes
-#
-#         self.weights1 = None
-#         self.weights2 = None
-#
-#         self.bias1 = None
-#         self.bias2 = None
-#
-#     def __repr__(self):
-#         info = 'Activation function:\tNone\nLearning rate:\t{}\nFirst set of weights:\n{}\nSecond set of ' \
-#                'weights:\n{}\nFirst layer bias:\t{}\nSecond layer bias:\t{}'.format(self.learning_rate,
-#                                                                                     self.weights1, self.weights2,
-#                                                                                     self.bias1, self.bias2)
-#         return info
-#
-#     def update_weight(self, input_vars, target, weights1, weights2, bias1, bias2):
-#         hidden_nodes = sigmoid(total_net_input(input_vars, weights1, bias1))
-#
-#         output_nodes = sigmoid(total_net_input(hidden_nodes, weights2, bias2))
-#
-#         delta = MLP.delta_output(output_nodes, target)
-#         new_weights2 = weights2 - self.learning_rate*np.column_stack(delta*row for row in hidden_nodes)
-#
-#         total = np.array([sum(delta * col) for col in weights2.T])
-#
-#         new_weights1 = np.copy(weights1)
-#         for row in range(weights1.shape[0]):
-#             new_weights1[:, row] = weights1[:, row] - self.learning_rate * total * hidden_nodes * \
-#                                                       (1 - hidden_nodes) * input_vars[row]
-#
-#         return new_weights1, new_weights2
-#
-#     def train_once(self, input_vars, targets):
-#         for input_var, target in zip(input_vars, targets):
-#             self.weights1, self.weights2 = self.update_weight(
-#                 input_var, target, self.weights1, self.weights2, self.bias1, self.bias2
-#             )
-#
-#     def fit(self, input_vars, targets, **kwargs):
-#         # Number of input columns
-#         self.num_input_nodes = input_vars.shape[1]
-#
-#         # is it multi class or binary?
-#         # TODO: binary how many outputs?
-#         unique_target_values = np.unique(targets)
-#         if len(unique_target_values) > 2:
-#             self.type = 'multiclass'
-#             self.num_output_nodes = len(unique_target_values)
-#             targets = multi_class_to_matrix(targets)
-#         else:
-#             raise NotImplementedError("Only works for multiclass as of now.")
-#
-#         # TODO: stop hard coding
-#         # TODO: multiple hidden layers
-#         self.num_hidden_nodes = 3
-#
-#         # Initialize value for the weights
-#         interval = 4*np.sqrt(6 / (self.num_hidden_nodes + self.num_input_nodes))
-#         self.weights1 = np.random.uniform(-interval, interval, size=(self.num_hidden_nodes, self.num_input_nodes))
-#         interval = 4*np.sqrt(6 / (self.num_output_nodes + self.num_hidden_nodes))
-#         self.weights2 = np.random.uniform(-interval, interval, size=(self.num_output_nodes, self.num_hidden_nodes))
-#
-#         # Initialize biases
-#         self.bias1 = np.zeros(self.num_hidden_nodes)
-#         self.bias2 = np.zeros(self.num_output_nodes)
-#
-#         # TODO: How many iterations?
-#         self.train(input_vars, targets, 100)
-#
-#     def train(self, input_vars, targets, n):
-#         # values = targets.unique()
-#         # if sum(values) > 2:
-#
-#         multi_class_to_matrix(targets[:, -1])
-#
-#         for i in range(n):
-#             self.train_once(input_vars, targets)
-#
-#     def predict_once(self, input_var):
-#         hidden_nodes = sigmoid(total_net_input(input_var, self.weights1, self.bias1))
-#         output_nodes = sigmoid(total_net_input(hidden_nodes, self.weights2, self.bias2))
-#
-#         return output_nodes
-#
-#     def predict(self, input_vars):
-#         return np.apply_along_axis(self.predict_once, 1, input_vars)
-#
-#     @staticmethod
-#     def total_error(output, target):
-#         return sum(0.5*(target - output)**2)
-#
-#     @staticmethod
-#     def delta_output(output, target):
-#         return -(target - output)*output*(1 - output)
-
-
-# mlp = MLP(3, 3, 1)
-# mlp.train(np.array([[.05, .1, .05]]), np.array([2]), 10000)
-#
-# print(mlp.predict(np.array([[0.05, 0.1, .05]])))
-#
-# print('\n' + repr(mlp))
 
 
 if __name__ == "__main__":
@@ -274,7 +187,7 @@ if __name__ == "__main__":
 
     net.fit(train_set[0], train_set[1], (400, ), iterations=5)
 
-    predicted = net.predict(test_set[0])
-    print(predicted)
-    print(np.average(predicted == test_set[1]))
+    pred = net.predict(test_set[0])
+    print(pred)
+    print(np.average(pred == test_set[1]))
     print(net)
