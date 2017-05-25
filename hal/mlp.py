@@ -1,8 +1,11 @@
 import gzip
 import pickle
+from sklearn import datasets
+
 import matplotlib.pyplot as plt
 
 import numpy as np
+from sklearn.preprocessing import StandardScaler
 
 from hal.utils.arrays import multi_class_to_matrix
 
@@ -135,6 +138,11 @@ class Network:
                 self.back_prop(targets)
                 self.gradient_descent()
                 error_sum += np.sum(self.output_layer.error**2)
+            if len(err) > 0:
+                if error_sum < err[-1]:
+                    self.learning_rate *= 0.95
+                else:
+                    self.learning_rate *= 0.5
             err.append(error_sum)
         if self.verbose:
             plt.plot(err)
@@ -178,16 +186,3 @@ class Labeler:
     def to_labels(self, predicted):
         max_indexes = np.argmax(predicted, axis=1)
         return np.array([self.labels[index] for index in max_indexes])
-
-
-if __name__ == "__main__":
-    with gzip.open('/home/liam/Downloads/mnist.pkl.gz', 'rb') as f:
-        train_set, valid_set, test_set = pickle.load(f, encoding='latin1')
-    net = Network()
-
-    net.fit(train_set[0], train_set[1], (400, ), iterations=5)
-
-    pred = net.predict(test_set[0])
-    print(pred)
-    print(np.average(pred == test_set[1]))
-    print(net)
